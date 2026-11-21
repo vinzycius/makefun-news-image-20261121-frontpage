@@ -1,25 +1,26 @@
-"""Entry point: draw the front page for Saturday 21 November 2026.
+"""Entry point: deliver the front page for Saturday 21 November 2026.
+
+The image was drawn in code by build_image.py (Pillow) during the build
+session and is committed in this repository as entry.png. This program
+copies it to the grader's output directory using only the Python
+standard library, so it runs in the grader's plain Python image (no
+Pillow, no network, read-only repository).
 
 Run: python3 main.py
-Writes entry.png (1024x1024, deterministic) next to this file.
+Writes entry.png (1024x1024, deterministic, byte-identical to the
+committed file) to MAKEFUN_OUTPUT_DIR when set, else next to this file.
 """
 
 import os
-import sys
-
-# The grader runs `python3 -P -s`, which does not put this file's directory
-# on sys.path; add it so the sibling module can be imported.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from build_image import build
+import shutil
 
 
 def main():
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or os.path.dirname(
-        os.path.abspath(__file__)
-    )
+    here = os.path.dirname(os.path.abspath(__file__))
+    src = os.path.join(here, "entry.png")
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR") or here
     path = os.path.join(out_dir, "entry.png")
-    build(path)
+    shutil.copyfile(src, path)
     print("%s %d bytes" % (path, os.path.getsize(path)))
 
 
