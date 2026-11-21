@@ -5,6 +5,12 @@ A newspaper front page summing up Saturday 21 November 2026: 45 stories
 verified as happening, or first reported, on Saturday 21 November 2026.
 All text and art is drawn in code with Pillow; no external images, no
 timestamps, no randomness -- the output is byte-for-byte deterministic.
+
+v4 layout: the top 3 leads are large cards with rich full-colour scenes
+(COP31, Riyadh missiles, Peru quake); the other 12 leads are smaller cards.
+Kharkiv (drone hits apartment block, 11 hurt) is promoted to lead #15 and
+the Las Vegas FP3 story is demoted to brief #39, so no single event takes
+two illustrated slots. Map pins for same-place stories spread on a ring.
 """
 
 from PIL import Image, ImageDraw, ImageFont
@@ -93,11 +99,11 @@ LEADS = [
          headline="Tinubu orders federal response to Bayelsa boat disaster",
          summary="Boat of funeral mourners capsized: 4 dead, 24 rescued; rally in Ibadan held quietly.",
          source="Presidency", lat=4.9, lon=6.1),
-    dict(n=15, place="LAS VEGAS", region="AM", field="MOTORSPORT", tag="REPORTED",
-         kind="motorsport",
-         headline="Russell fastest in final Vegas practice after Verstappen clash",
-         summary="Russell 1:34.041 tops FP3; the pair bang wheels at Turn 14; both called to stewards.",
-         source="Formula1.com", lat=36.2, lon=-115.1),
+    dict(n=15, place="KHARKIV", region="EU", field="WAR", tag="REPORTED",
+         kind="war",
+         headline="Drone hits Kharkiv apartment block; 11 hurt",
+         summary="A Russian drone hits a five-storey Kharkiv apartment block; 11 wounded, incl. two children.",
+         source="AP", lat=49.9, lon=36.3),
 ]
 
 BRIEFS = [
@@ -124,7 +130,7 @@ BRIEFS = [
     (36, "TURIN", "Zverev meets Medvedev in Turin tonight", "ATP", 45.1, 7.7),
     (37, "TURIN", "Doubles semi-finals in Turin on Saturday", "ATP", 45.1, 7.7),
     (38, "KYIV", "Russian drones hit Kyiv and other cities overnight", "OSNT brief", 50.4, 30.5),
-    (39, "KHARKIV", "Drone hits Kharkiv apartment block; 11 hurt", "AP", 49.9, 36.3),
+    (39, "LAS VEGAS", "Russell fastest in final Vegas practice after Verstappen clash", "Formula1.com", 36.2, -115.1),
     (40, "DAVAO", "Davao airport shut two hours; flights cancelled", "CAAP", 7.1, 125.6),
     (41, "DAVAO", "Six South Koreans aboard the Davao jet", "JTBC", 7.1, 125.6),
     (42, "JUN\u00cdN", "Quake shakes Peru\u2019s copper heartland", "The Indian Post", -11.2, -75.9),
@@ -163,8 +169,8 @@ DATE_CHECK = (
     "2 more were over Jazan on Friday) \u00b7 Trump\u2019s data-centre tax, the China\u2013Japan Taiwan "
     "warning, the UK\u2013EU deal, the Denmark expulsion, the Roundup settlement and the "
     "Australia\u2013China AI talks (all Friday 20 Nov) \u00b7 Zelensky\u2019s Crimea bridge warning "
-    "(Wednesday 18 Nov) \u00b7 the Bayelsa boat and the Hodeidah strikes (Friday 20 Nov) \u00b7 "
-    "the Kryvyi Rih toll is 60 injured, not 42 \u2014 and Rahul finished on 136, not 124*."
+    "(Wed 18 Nov) \u00b7 the Bayelsa boat and the Hodeidah strikes (Friday 20 Nov) \u00b7 "
+    "Kryvyi Rih toll is 60 injured, not 42 \u2014 Rahul finished on 136, not 124*."
 )
 
 FOOTER = (
@@ -216,6 +222,9 @@ def fonts():
         "numlabel": _font("LiberationSans.ttf", 9),
         "lead_head": _font("LiberationSerif-Bold.ttf", 11),
         "lead_sum": _font("LiberationSans.ttf", 9),
+        "big_head": _font("LiberationSerif-Bold.ttf", 14),
+        "big_sum": _font("LiberationSans.ttf", 10),
+        "big_kick": _font("LiberationSans-Bold.ttf", 9),
         "lead_kick": _font("LiberationSans-Bold.ttf", 8),
         "src": _font("LiberationSans.ttf", 8),
         "tag": _font("LiberationSans-Bold.ttf", 7),
@@ -347,6 +356,101 @@ def draw_illustration(d, box, kind, ink):
         d.arc([x1 - 20, y1 - 8, x1 - 4, y1 + 2], 180, 360, fill=ink, width=2)
 
 
+def draw_big_illustration(d, box, kind, F):
+    """Rich scene for a top-3 lead: a full-colour picture, not a pictogram."""
+    import math
+    x0, y0, x1, y1 = box
+    x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+    w, h = x1 - x0, y1 - y0
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    if kind == "climate":
+        d.rectangle([x0, y0, x1, y1], fill=(198, 224, 236))
+        # globe, left
+        gx, gy, gr = x0 + 62, cy, 33
+        d.ellipse([gx - gr, gy - gr, gx + gr, gy + gr], fill=(58, 128, 198),
+                  outline=(30, 80, 140), width=2)
+        d.ellipse([gx - 16, gy - 20, gx + 2, gy - 6], fill=(96, 176, 96))
+        d.ellipse([gx - 4, gy + 4, gx + 18, gy + 20], fill=(96, 176, 96))
+        d.ellipse([gx + 12, gy - 22, gx + 24, gy - 10], fill=(96, 176, 96))
+        # thermometer, centre
+        tx = x0 + 168
+        d.rounded_rectangle([tx - 7, y0 + 10, tx + 7, y1 - 16], radius=7,
+                            fill=(255, 255, 255), outline=(150, 40, 30), width=2)
+        d.rectangle([tx - 3, y0 + 26, tx + 3, y1 - 22], fill=(200, 40, 30))
+        d.ellipse([tx - 10, y1 - 26, tx + 10, y1 - 6], fill=(200, 40, 30),
+                  outline=(150, 40, 30), width=2)
+        d.line([tx - 12, y0 + 22, tx + 12, y0 + 22], fill=(150, 40, 30), width=2)
+        # clock (overtime), right
+        kx, ky, kr = x0 + 262, cy, 27
+        d.ellipse([kx - kr, ky - kr, kx + kr, ky + kr], fill=(255, 255, 255),
+                  outline=(20, 20, 20), width=2)
+        d.line([kx, ky, kx, ky - 18], fill=(20, 20, 20), width=2)
+        d.line([kx, ky, kx + 13, ky + 6], fill=(20, 20, 20), width=2)
+        d.ellipse([kx - 3, ky - 3, kx + 3, ky + 3], fill=(178, 34, 34))
+        d.text((kx - 22, ky + kr + 2), "DAY 13", font=F["tag"], fill=(178, 34, 34))
+    elif kind == "missile":
+        d.rectangle([x0, y0, x1, y1], fill=(16, 26, 56))
+        # stars
+        for sx, sy in [(x0 + 22, y0 + 12), (x0 + 70, y0 + 8), (x0 + 150, y0 + 14),
+                       (x0 + 210, y0 + 9), (x0 + 280, y0 + 13), (x0 + 310, y0 + 7)]:
+            d.ellipse([sx - 1, sy - 1, sx + 1, sy + 1], fill=(255, 255, 255))
+        # skyline, dark towers with lit windows
+        for bx, bw, bh in [(x0 + 6, 34, 34), (x0 + 44, 26, 46), (x0 + 74, 30, 30),
+                           (x0 + 108, 24, 52), (x0 + 136, 36, 38), (x0 + 176, 28, 44),
+                           (x0 + 208, 32, 34), (x0 + 244, 26, 48), (x0 + 274, 34, 36),
+                           (x0 + 312, 14, 30)]:
+            d.rectangle([bx, y1 - bh, bx + bw, y1], fill=(8, 12, 30))
+            for wy in range(y1 - bh + 6, y1 - 4, 9):
+                for wx in range(bx + 5, bx + bw - 4, 9):
+                    if (wx + wy) % 3 == 0:
+                        d.rectangle([wx, wy, wx + 3, wy + 4], fill=(255, 205, 90))
+        # three interceptor trails arcing up, with starbursts
+        for tx0, tx1, top in [(x0 + 40, x0 + 120, y0 + 16), (x0 + 150, x0 + 220, y0 + 10),
+                              (x0 + 240, x0 + 300, y0 + 18)]:
+            pts = []
+            for s in range(0, 21):
+                t = s / 20
+                px = tx0 + (tx1 - tx0) * t
+                py = (y1 - 8) + (top - (y1 - 8)) * t - 14 * math.sin(math.pi * t)
+                pts.append((px, py))
+            d.line(pts, fill=(255, 220, 120), width=2)
+            ex, ey = tx1, top
+            for a in range(0, 360, 30):
+                r = 9
+                d.line([ex, ey, ex + r * math.cos(math.radians(a)),
+                        ey + r * math.sin(math.radians(a))],
+                       fill=(255, 180, 60), width=2)
+            d.ellipse([ex - 4, ey - 4, ex + 4, ey + 4], fill=(255, 240, 180))
+    elif kind == "quake":
+        d.rectangle([x0, y0, x1, y1], fill=(236, 226, 202))
+        # seismograph trace, big red waveform
+        pts = [(x0 + 4, cy + 6)]
+        amps = [0, 2, -3, 6, -14, 20, -26, 16, -8, 4, -2, 0]
+        step = (w - 8) / (len(amps) - 1)
+        for i, a in enumerate(amps):
+            pts.append((x0 + 4 + i * step, cy + a))
+        pts.append((x1 - 4, cy + 4))
+        d.line(pts, fill=(178, 34, 34), width=3)
+        d.line([(x0 + 4, cy + 26), (x1 - 4, cy + 26)], fill=(150, 130, 100), width=2)
+        # houses along the ground line, one tilted
+        for hx, tilt in [(x0 + 30, 0), (x0 + 90, 0), (x0 + 150, 8), (x0 + 215, 0)]:
+            hy = y1 - 26
+            if tilt:
+                d.polygon([(hx, hy - 12), (hx + 22, hy - 4), (hx + 22, hy + 10),
+                           (hx, hy + 10)], fill=(150, 90, 60), outline=(90, 50, 30))
+                d.polygon([(hx - 2, hy - 12), (hx + 11, hy - 22), (hx + 24, hy - 12)],
+                          fill=(120, 60, 40))
+            else:
+                d.rectangle([hx, hy - 10, hx + 22, hy + 10], fill=(170, 120, 80),
+                            outline=(90, 50, 30))
+                d.polygon([(hx - 2, hy - 10), (hx + 11, hy - 20), (hx + 24, hy - 10)],
+                          fill=(120, 60, 40))
+        d.text((x1 - 56, y0 + 4), "6.7", font=F["big"], fill=(178, 34, 34))
+    else:
+        # fallback: the small pictogram, centred
+        draw_illustration(d, box, kind, (60, 60, 60))
+
+
 # ---------------------------------------------------------------- sections
 
 
@@ -385,50 +489,77 @@ def draw_region_bar(d, F, y):
 
 
 def draw_leads(d, F, y):
-    cols, gap = 5, 4
-    card_w = (W - 2 * MARGIN - (cols - 1) * gap) / cols
-    card_h = 136
-    for row in range(3):
-        for col in range(5):
-            lead = LEADS[row * 5 + col]
-            x0 = MARGIN + col * (card_w + gap)
-            x1 = x0 + card_w
-            cy = y + row * (card_h + gap)
-            d.rectangle([x0, cy, x1, cy + card_h], outline=RULE, width=1)
-            # illustration band
-            tint = KIND_TINT[lead["kind"]]
-            d.rectangle([x0 + 1, cy + 1, x1 - 1, cy + 33], fill=tint)
-            draw_illustration(d, (x0 + card_w / 2 - 26, cy + 2, x0 + card_w / 2 + 26, cy + 32),
-                              lead["kind"], KIND_INK[lead["kind"]])
-            # number tag
-            d.ellipse([x0 + 4, cy + 4, x0 + 20, cy + 20], fill=RED)
-            num = str(lead["n"])
-            nw = d.textlength(num, font=F["tag"])
-            d.text((x0 + 12 - nw / 2, cy + 8), num, font=F["tag"], fill=(255, 255, 255))
-            # kicker: place + field
-            d.text((x0 + 5, cy + 37), "%s \u00b7 %s" % (lead["place"], lead["field"]),
-                   font=F["lead_kick"], fill=RED)
-            # headline, up to 3 lines
-            hl = fit_lines(d, lead["headline"], F["lead_head"], card_w - 10, 3)
-            hy = cy + 49
-            for ln in hl:
-                d.text((x0 + 5, hy), ln, font=F["lead_head"], fill=INK)
-                hy += 12
-            # summary, up to 3 lines
-            sl = fit_lines(d, lead["summary"], F["lead_sum"], card_w - 10, 3)
-            sy = hy + 2
-            for ln in sl:
-                d.text((x0 + 5, sy), ln, font=F["lead_sum"], fill=INK)
-                sy += 11
-            # source + verification tag, pinned to the card bottom
-            d.text((x0 + 5, cy + card_h - 12), lead["source"], font=F["src"], fill=MUTED)
-            tag = lead["tag"]
-            tw = d.textlength(tag, font=F["tag"]) + 8
-            d.rounded_rectangle([x1 - 5 - tw, cy + card_h - 13, x1 - 5, cy + card_h - 3],
-                                radius=4, fill=TAG_COLORS[tag])
-            d.text((x1 - 5 - tw + 4, cy + card_h - 11), tag, font=F["tag"],
-                   fill=(255, 255, 255))
-    return y + 3 * card_h + 2 * gap + 6
+    gap = 4
+    # --- big row: leads 1-3, large rich illustrations
+    big_w = (W - 2 * MARGIN - 2 * gap) / 3
+    big_h = 170
+    for i in range(3):
+        lead = LEADS[i]
+        x0 = MARGIN + i * (big_w + gap)
+        x1 = x0 + big_w
+        d.rectangle([x0, y, x1, y + big_h], outline=RULE, width=1)
+        draw_big_illustration(d, (x0 + 1, y + 1, x1 - 1, y + 86), lead["kind"], F)
+        d.ellipse([x0 + 5, y + 5, x0 + 23, y + 23], fill=RED)
+        num = str(lead["n"])
+        nw = d.textlength(num, font=F["tag"])
+        d.text((x0 + 14 - nw / 2, y + 10), num, font=F["tag"], fill=(255, 255, 255))
+        d.text((x0 + 6, y + 91), "%s \u00b7 %s" % (lead["place"], lead["field"]),
+               font=F["big_kick"], fill=RED)
+        hl = fit_lines(d, lead["headline"], F["big_head"], big_w - 12, 2)
+        hy = y + 104
+        for ln in hl:
+            d.text((x0 + 6, hy), ln, font=F["big_head"], fill=INK)
+            hy += 15
+        sl = fit_lines(d, lead["summary"], F["big_sum"], big_w - 12, 2)
+        sy = hy + 2
+        for ln in sl:
+            d.text((x0 + 6, sy), ln, font=F["big_sum"], fill=INK)
+            sy += 11
+        d.text((x0 + 6, y + big_h - 12), lead["source"], font=F["src"], fill=MUTED)
+        tag = lead["tag"]
+        tw = d.textlength(tag, font=F["tag"]) + 8
+        d.rounded_rectangle([x1 - 6 - tw, y + big_h - 13, x1 - 6, y + big_h - 3],
+                            radius=4, fill=TAG_COLORS[tag])
+        d.text((x1 - 6 - tw + 4, y + big_h - 11), tag, font=F["tag"],
+               fill=(255, 255, 255))
+    # --- small rows: leads 4-15, 2 rows x 6
+    y2 = y + big_h + gap
+    small_w = (W - 2 * MARGIN - 5 * gap) / 6
+    small_h = 124
+    for idx, lead in enumerate(LEADS[3:]):
+        row, col = divmod(idx, 6)
+        x0 = MARGIN + col * (small_w + gap)
+        x1 = x0 + small_w
+        cy = y2 + row * (small_h + gap)
+        d.rectangle([x0, cy, x1, cy + small_h], outline=RULE, width=1)
+        tint = KIND_TINT[lead["kind"]]
+        d.rectangle([x0 + 1, cy + 1, x1 - 1, cy + 28], fill=tint)
+        draw_illustration(d, (x0 + small_w / 2 - 24, cy + 2, x0 + small_w / 2 + 24, cy + 27),
+                          lead["kind"], KIND_INK[lead["kind"]])
+        d.ellipse([x0 + 4, cy + 4, x0 + 20, cy + 20], fill=RED)
+        num = str(lead["n"])
+        nw = d.textlength(num, font=F["tag"])
+        d.text((x0 + 12 - nw / 2, cy + 8), num, font=F["tag"], fill=(255, 255, 255))
+        d.text((x0 + 5, cy + 32), "%s \u00b7 %s" % (lead["place"], lead["field"]),
+               font=F["lead_kick"], fill=RED)
+        hl = fit_lines(d, lead["headline"], F["lead_head"], small_w - 10, 2)
+        hy = cy + 44
+        for ln in hl:
+            d.text((x0 + 5, hy), ln, font=F["lead_head"], fill=INK)
+            hy += 12
+        sl = fit_lines(d, lead["summary"], F["lead_sum"], small_w - 10, 3)
+        sy = hy + 2
+        for ln in sl:
+            d.text((x0 + 5, sy), ln, font=F["lead_sum"], fill=INK)
+            sy += 11
+        d.text((x0 + 5, cy + small_h - 12), lead["source"], font=F["src"], fill=MUTED)
+        tag = lead["tag"]
+        tw = d.textlength(tag, font=F["tag"]) + 8
+        d.rounded_rectangle([x1 - 5 - tw, cy + small_h - 13, x1 - 5, cy + small_h - 3],
+                            radius=4, fill=TAG_COLORS[tag])
+        d.text((x1 - 5 - tw + 4, cy + small_h - 11), tag, font=F["tag"],
+               fill=(255, 255, 255))
+    return y2 + 2 * small_h + gap + 6
 
 
 def draw_briefs(d, F, y):
@@ -436,21 +567,21 @@ def draw_briefs(d, F, y):
     d.line([MARGIN, y + 15, W - MARGIN, y + 15], fill=RULE, width=1)
     y += 19
     col_w = (W - 2 * MARGIN - 16) / 2
-    row_h = 13.5
+    row_h = 12.5
     for i, (n, place, frag, src, _lat, _lon) in enumerate(BRIEFS):
         col = i % 2
         row = i // 2
         x0 = MARGIN + col * (col_w + 16)
         by = y + row * row_h
-        line = "%d \u00b7 %s \u2014 %s (%s)" % (n, place, frag, src)
-        if d.textlength(line, font=F["brief"]) > col_w:
-            # shorten the fragment until it fits
-            while frag and d.textlength(
-                    "%d \u00b7 %s \u2014 %s\u2026 (%s)" % (n, place, frag, src),
-                    font=F["brief"]) > col_w:
-                frag = frag[:-1]
-            line = "%d \u00b7 %s \u2014 %s\u2026 (%s)" % (n, place, frag, src)
-        d.text((x0, by), line, font=F["brief"], fill=INK)
+        prefix = "%d \u00b7 %s \u2014 " % (n, place)
+        pw = d.textlength(prefix, font=F["brief_b"])
+        tail = "%s (%s)" % (frag, src)
+        avail = col_w - pw
+        while tail and d.textlength(tail, font=F["brief"]) > avail:
+            frag = frag[:-1]
+            tail = "%s\u2026 (%s)" % (frag, src)
+        d.text((x0, by), prefix, font=F["brief_b"], fill=INK)
+        d.text((x0 + pw, by), tail, font=F["brief"], fill=INK)
     return y + 15 * row_h + 4
 
 
@@ -513,16 +644,35 @@ def draw_map(d, F, x0, y0, w, h):
     all_stories += [(n, lat, lon) for (n, _p, _f, _s, lat, lon) in BRIEFS]
     space_pins = {4: (mx + mw - 43, my + 13), 28: (mx + mw - 54, my + 32),
                   29: (mx + mw - 70, my + 32)}
+    # group by place so same-location pins spread on a ring instead of stacking
+    from collections import defaultdict
+    import math
+    groups = defaultdict(list)
     for n, lat, lon in sorted(all_stories):
         if n in space_pins:
-            px, py = space_pins[n]
+            continue
+        groups[(lat, lon)].append(n)
+    for (lat, lon), nums in groups.items():
+        bx, by = _project(lon, lat, mx, my, mw, mh)
+        if len(nums) == 1:
+            offsets = [(0, 0)]
         else:
-            px, py = _project(lon, lat, mx, my, mw, mh)
-            # deterministic de-clash nudge so same-place pins do not sit exactly on top
-            px += ((n * 37) % 9 - 4) * 3
-            py += ((n * 53) % 7 - 3) * 3
+            offsets = []
+            for k in range(len(nums)):
+                ang = 2 * math.pi * k / len(nums) - math.pi / 2
+                offsets.append((round(11 * math.cos(ang)), round(11 * math.sin(ang))))
+        for n, (dx, dy) in zip(nums, offsets):
+            px, py = bx + dx, by + dy
+            r = 6
+            d.ellipse([px - r, py - r, px + r, py + r], fill=RED,
+                      outline=(255, 255, 255), width=1)
+            num = str(n)
+            nw = d.textlength(num, font=F["map_pin"])
+            d.text((px - nw / 2, py - 4.5), num, font=F["map_pin"], fill=(255, 255, 255))
+    for n, (px, py) in space_pins.items():
         r = 6
-        d.ellipse([px - r, py - r, px + r, py + r], fill=RED, outline=(255, 255, 255), width=1)
+        d.ellipse([px - r, py - r, px + r, py + r], fill=RED,
+                  outline=(255, 255, 255), width=1)
         num = str(n)
         nw = d.textlength(num, font=F["map_pin"])
         d.text((px - nw / 2, py - 4.5), num, font=F["map_pin"], fill=(255, 255, 255))
@@ -550,14 +700,14 @@ def draw_timeline(d, F, x0, y0, w, h):
 
 
 def draw_date_check(d, F, y):
-    h = 52
+    h = 56
     d.rectangle([MARGIN, y, W - MARGIN, y + h], outline=RED, width=2)
     d.text((MARGIN + 6, y + 4), "DATE CHECK \u2014 WHAT WE LEFT OUT, AND WHY", font=F["sec"], fill=RED)
     lines = wrap(d, DATE_CHECK, F["check"], W - 2 * MARGIN - 12)
-    ly = y + 18
+    ly = y + 19
     for ln in lines[:3]:
         d.text((MARGIN + 6, ly), ln, font=F["check"], fill=INK)
-        ly += 11
+        ly += 12
     return y + h + 4
 
 
@@ -584,7 +734,7 @@ def build(path="entry.png"):
     y = draw_leads(d, F, y)
     y = draw_briefs(d, F, y)
     map_y = y + 2
-    map_h = 100
+    map_h = 108
     draw_map(d, F, MARGIN, map_y, 600, map_h)
     draw_timeline(d, F, MARGIN + 612, map_y, W - MARGIN - (MARGIN + 612), map_h)
     y = draw_date_check(d, F, map_y + map_h + 6)
